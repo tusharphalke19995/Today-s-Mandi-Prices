@@ -13,6 +13,7 @@ env/
 # Build
 dist/
 build/
+backend/static/
 *.egg-info/
 
 # IDE

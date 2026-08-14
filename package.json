@@ -1,0 +1,8 @@
+{
+  "name": "todays-mandi-prices",
+  "private": true,
+  "description": "Root package.json so Render installs Node.js for the frontend build",
+  "engines": {
+    "node": ">=20"
+  }
+}

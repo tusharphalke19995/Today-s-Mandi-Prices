@@ -1,9 +1,12 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.api.v1 import api_router
@@ -86,3 +89,31 @@ async def health_check():
         "database": db_status,
         "sync": get_sync_status(),
     }
+
+
+def _mount_frontend(app: FastAPI) -> None:
+    """Serve Vite production build from backend/static (Render single-service deploy)."""
+    static_dir = Path(__file__).resolve().parent.parent / "static"
+    index_file = static_dir / "index.html"
+    if not index_file.is_file():
+        return
+
+    assets_dir = static_dir / "assets"
+    if assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="frontend-assets")
+
+    @app.get("/")
+    async def serve_root():
+        return FileResponse(index_file)
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        if full_path.startswith(("api/", "docs", "redoc", "openapi.json", "health")):
+            raise HTTPException(status_code=404)
+        candidate = static_dir / full_path
+        if candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(index_file)
+
+
+_mount_frontend(app)
