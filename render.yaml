@@ -1,0 +1,26 @@
+# Render Blueprint — optional one-click deploy for backend
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: mandi-prices-api
+    runtime: python
+    region: singapore
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      - key: DEBUG
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: DATA_GOV_API_KEY
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true

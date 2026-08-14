@@ -1,0 +1,84 @@
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+
+from app.api.v1 import api_router
+from app.core.config import get_settings
+from app.database.base import Base
+from app.database.session import engine, SessionLocal
+from app.repositories.cache_repository import CacheRepository
+from app.services.seed_service import seed_sample_data
+from app.services.sync_scheduler import get_sync_status, start_sync_scheduler
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    sync_task = None
+    try:
+        CacheRepository(db).purge_expired()
+        seeded = seed_sample_data(db)
+        logger.info("Mandi prices ready (%s records, incl. Mumbai/Pune/Manchar/Junnar)", seeded)
+    finally:
+        db.close()
+
+    sync_task = start_sync_scheduler()
+
+    yield
+
+    if sync_task:
+        sync_task.cancel()
+        try:
+            await sync_task
+        except asyncio.CancelledError:
+            pass
+
+
+app = FastAPI(
+    title=settings.app_name,
+    description="REST API for Today's Mandi Prices - Indian agricultural market prices",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+# In debug mode allow any dev origin (localhost, LAN IP like 172.x.x.x:5173, etc.)
+cors_kwargs: dict = {
+    "allow_credentials": True,
+    "allow_methods": ["*"],
+    "allow_headers": ["*"],
+}
+if settings.debug:
+    cors_kwargs["allow_origin_regex"] = r"https?://.*"
+else:
+    cors_kwargs["allow_origins"] = settings.cors_origins_list
+
+app.add_middleware(CORSMiddleware, **cors_kwargs)
+
+app.include_router(api_router, prefix=settings.api_v1_prefix)
+
+
+@app.get("/health")
+async def health_check():
+    db_status = "unknown"
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        db_status = "connected"
+    except Exception:
+        db_status = "disconnected"
+
+    return {
+        "status": "healthy",
+        "app": settings.app_name,
+        "database": db_status,
+        "sync": get_sync_status(),
+    }
