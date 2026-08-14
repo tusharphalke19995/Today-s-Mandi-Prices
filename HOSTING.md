@@ -1,73 +1,68 @@
-# Fix Render 404 — follow these steps exactly
+# Dynamic features on Render (live prices, filters, hourly sync)
 
-## Why 404?
+## What works dynamically
 
-`mandi-prices-web` was a **Static Site** — the build files were never published correctly.
-
-The fix uses a **Node Web Service** instead (runs `serve` to host the React app).
-
----
-
-## Option A — Fix mandi-prices-web (keep your URL)
-
-### 1. Delete the broken static site
-1. [Render Dashboard](https://dashboard.render.com)
-2. Open **mandi-prices-web**
-3. **Settings** → scroll down → **Delete Web Service** → confirm
-
-### 2. Redeploy from GitHub Blueprint
-1. Go to **Blueprints** in Render (left menu)
-2. Open your blueprint OR use:
-   **https://render.com/deploy?repo=https://github.com/tusharphalke19995/Today-s-Mandi-Prices**
-3. Click **Apply** / **Sync** — creates fresh **mandi-prices-api** + **mandi-prices-web**
-
-### 3. Wait & test
-- **mandi-prices-api** → Live → https://mandi-prices-api.onrender.com/health
-- **mandi-prices-web** → Live → **https://mandi-prices-web.onrender.com**
+| Feature | How |
+|---------|-----|
+| Live mandi prices | Agmarknet API sync every 1 hour |
+| Mumbai / Pune / Manchar / Junnar | Priority sync + quick filter chips |
+| State / District / Mandi / Crop filters | Loaded from database |
+| Search | Real-time API query |
+| Language switch (Hindi/Marathi/English) | Client-side |
+| Price refresh | Auto every 1 hour in browser |
 
 ---
 
-## Option B — Use API URL only (works after 1 redeploy)
+## Keep it alive on Render free tier (IMPORTANT)
 
-If you don't want to delete anything:
+Render free tier **sleeps after 15 min**. Without these, sync stops and first load is slow.
 
-1. Render → **mandi-prices-api** → **Manual Deploy** → **Deploy latest commit**
-2. Wait ~10 min (builds React + copies into API)
-3. Open: **https://mandi-prices-api.onrender.com**
+### 1. UptimeRobot — wake server every 14 min (free)
 
-This URL serves **website + API together**.
+1. https://uptimerobot.com → free account
+2. **Add Monitor**:
+   - Type: HTTP(s)
+   - URL: `https://mandi-prices-api.onrender.com/health`
+   - Interval: **5 minutes** (or 14 min)
 
----
+### 2. cron-job.org — hourly price sync (free)
 
-## Manual settings (if not using Blueprint)
+1. https://cron-job.org → free account
+2. **Create cron job**:
+   - URL: `https://mandi-prices-api.onrender.com/api/v1/sync/run`
+   - Method: **POST**
+   - Schedule: **Every hour** (`0 * * * *`)
+   - Header: `X-Sync-Key: <your SYNC_API_KEY from Render env>`
 
-### mandi-prices-web (NEW — must be Node, not Static)
-
-| Setting | Value |
-|---------|-------|
-| Type | **Web Service** (NOT Static Site) |
-| Runtime | **Node** |
-| Root Directory | `frontend` |
-| Build Command | `npm ci && npm run build:render` |
-| Start Command | `npm run start:render` |
-| Node version | `20.11.0` |
-
-### mandi-prices-api
-
-| Setting | Value |
-|---------|-------|
-| Build Command | `bash scripts/render-build.sh` |
-| Start Command | `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+Get `SYNC_API_KEY` from Render → **mandi-prices-api** → **Environment**.
 
 ---
 
-## Working URLs (after fix)
+## Deploy checklist
+
+- [ ] **mandi-prices-api** redeployed (latest GitHub commit)
+- [ ] **mandi-prices-web** is **Node Web Service** (not Static Site)
+- [ ] UptimeRobot pinging `/health`
+- [ ] cron-job.org POST `/api/v1/sync/run` hourly
+- [ ] Test filters, search, quick market chips
+- [ ] Test commodity detail page (click a price card)
+
+---
+
+## Test URLs
 
 ```
-Website:  https://mandi-prices-web.onrender.com   (Option A)
-       OR https://mandi-prices-api.onrender.com     (Option B)
-API:      https://mandi-prices-api.onrender.com/api/v1
 Health:   https://mandi-prices-api.onrender.com/health
+Sync:     https://mandi-prices-api.onrender.com/api/v1/sync/status
+Prices:   https://mandi-prices-api.onrender.com/api/v1/today-prices?areas=Mumbai,Pune,Manchar,Junnar&state=Maharashtra
+Website:  https://mandi-prices-web.onrender.com
+          OR https://mandi-prices-api.onrender.com
 ```
 
-First visit after idle: **30–60 seconds** (free tier wake-up).
+---
+
+## If filters show empty
+
+1. Wait 1–2 min after first load (API waking + syncing)
+2. Check sync status URL above — `last_sync_at` should update
+3. Manually trigger sync: POST to `/api/v1/sync/run` with `X-Sync-Key` header

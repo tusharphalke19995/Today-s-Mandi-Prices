@@ -68,7 +68,7 @@ class AgmarknetService:
             params[f"filters[{key}]"] = value
 
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(self.api_url, params=params)
                 response.raise_for_status()
                 payload = response.json()
@@ -199,9 +199,37 @@ class MarketService:
         self.db.commit()
         return synced
 
+    async def _sync_priority_areas(self) -> int:
+        """Sync Mumbai, Pune, Manchar, Junnar mandi data from Agmarknet."""
+        total = 0
+        for area in PRIORITY_AREAS:
+            for offset in range(0, 200, 100):
+                records = await self.agmarknet.fetch_prices(
+                    state="Maharashtra",
+                    market=area,
+                    limit=100,
+                    offset=offset,
+                )
+                if not records:
+                    records = await self.agmarknet.fetch_prices(
+                        state="Maharashtra",
+                        district=area,
+                        limit=100,
+                        offset=offset,
+                    )
+                if not records:
+                    break
+                total += await self._sync_records_batch(records)
+                if len(records) < 100:
+                    break
+        return total
+
     async def run_full_sync(self) -> int:
         """Pull latest mandi prices for all major states (hourly job)."""
         total = 0
+
+        # Maharashtra local areas first (Mumbai, Pune, Manchar, Junnar)
+        total += await self._sync_priority_areas()
 
         # General nationwide batch
         for offset in range(0, 300, 100):
@@ -211,20 +239,6 @@ class MarketService:
             total += await self._sync_records_batch(records)
             if len(records) < 100:
                 break
-
-        # Maharashtra local areas first (Mumbai, Pune, Manchar, Junnar)
-        for area in PRIORITY_AREAS:
-            for offset in range(0, 200, 100):
-                records = await self.agmarknet.fetch_prices(
-                    state="Maharashtra", district=area if area != "Mumbai" else None, limit=100, offset=offset
-                )
-                if not records and area != "Mumbai":
-                    records = await self.agmarknet.fetch_prices(state="Maharashtra", limit=100, offset=offset)
-                if not records:
-                    break
-                total += await self._sync_records_batch(records)
-                if len(records) < 100:
-                    break
 
         # State-wise batches for better coverage
         for state in PRIORITY_STATES:
@@ -321,6 +335,11 @@ class MarketService:
             return items, cached["total"]
 
         items, total = self.repo.get_today_prices(query_params)
+
+        if not items and query_params.areas:
+            logger.info("No prices for areas=%s — syncing priority mandis", query_params.areas)
+            await self._sync_priority_areas()
+            items, total = self.repo.get_today_prices(query_params)
 
         # Only hit external API when the database has no price data at all.
         # Filtered empty results are valid and should return immediately.

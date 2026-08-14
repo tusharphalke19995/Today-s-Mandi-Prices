@@ -65,8 +65,6 @@ else:
     cors_kwargs["allow_origin_regex"] = (
         r"https://([a-z0-9-]+\.)*(vercel\.app|onrender\.com)$"
     )
-    if settings.cors_origins_list and settings.cors_origins_list != ["http://localhost:5173"]:
-        cors_kwargs["allow_origins"] = settings.cors_origins_list
 
 app.add_middleware(CORSMiddleware, **cors_kwargs)
 

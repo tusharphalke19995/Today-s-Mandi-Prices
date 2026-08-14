@@ -54,9 +54,12 @@ async def run_price_sync() -> int:
 
 
 async def hourly_sync_loop() -> None:
-    """Run sync immediately on start, then every hour."""
+    """Run sync on start, then every hour."""
     interval = settings.sync_interval_seconds
     logger.info("Price sync scheduler started (every %s seconds)", interval)
+
+    # Let the server accept requests before the first heavy sync
+    await asyncio.sleep(5)
 
     while True:
         await run_price_sync()

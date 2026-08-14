@@ -6,7 +6,7 @@ pip install -r backend/requirements.txt
 
 cd frontend
 npm ci
-npm run build
+VITE_API_BASE_URL=/api/v1 npm run build:render
 
 cd ..
 rm -rf backend/static

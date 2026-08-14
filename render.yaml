@@ -28,6 +28,8 @@ services:
         value: 579b464db66ec23bdd000001cdd3946e44ce57746370fffc958d3611
       - key: JWT_SECRET_KEY
         generateValue: true
+      - key: SYNC_API_KEY
+        generateValue: true
 
   # Public website — Node web service (more reliable than static site)
   - type: web
