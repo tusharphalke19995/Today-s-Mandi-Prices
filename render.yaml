@@ -2,15 +2,14 @@
 # Deploy: https://render.com/deploy?repo=https://github.com/tusharphalke19995/Today-s-Mandi-Prices
 
 services:
-  # Backend API
+  # Backend API (+ website fallback at same URL)
   - type: web
     name: mandi-prices-api
     runtime: python
     region: singapore
     plan: free
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: bash scripts/render-build.sh
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
@@ -30,19 +29,15 @@ services:
       - key: JWT_SECRET_KEY
         generateValue: true
 
-  # Public website — https://mandi-prices-web.onrender.com
+  # Public website — Node web service (more reliable than static site)
   - type: web
     name: mandi-prices-web
-    runtime: static
+    runtime: node
     region: singapore
     plan: free
     rootDir: frontend
     buildCommand: npm ci && npm run build:render
-    staticPublishPath: ./dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    startCommand: npm run start:render
     envVars:
       - key: NODE_VERSION
         value: "20.11.0"
