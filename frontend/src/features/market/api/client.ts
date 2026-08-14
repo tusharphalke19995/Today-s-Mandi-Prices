@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const apiHost = import.meta.env.VITE_API_HOST as string | undefined;
+const apiHost =
+  (import.meta.env.VITE_API_HOST as string | undefined) ||
+  (import.meta.env.PROD ? 'mandi-prices-api.onrender.com' : undefined);
 const API_BASE_URL =
   apiHost != null && apiHost !== ''
     ? `https://${apiHost}/api/v1`

@@ -1,38 +1,43 @@
-# One-click free public hosting
+# Free hosting on Render
 
-## Fix for "Not Found" on Render
+## Your website URL
 
-The app now runs as **one service** — website + API on the same URL.
+**https://mandi-prices-web.onrender.com**
 
-**Use this URL (not mandi-prices-web):**
-
-👉 **https://mandi-prices-api.onrender.com**
+(API: https://mandi-prices-api.onrender.com)
 
 ---
 
-## Redeploy (after GitHub update)
+## If you see "Not Found" — redeploy both services
 
-1. Open [Render Dashboard](https://dashboard.render.com)
-2. Open **mandi-prices-api** → **Manual Deploy** → **Deploy latest commit**
-3. Wait ~10 minutes for build (installs Python + Node, builds React, copies to API)
-4. Open **https://mandi-prices-api.onrender.com**
+The fix is on GitHub. You must redeploy on Render:
 
-You can delete the old **mandi-prices-web** static site (optional).
+### Step 1 — Redeploy API
+1. [Render Dashboard](https://dashboard.render.com) → **mandi-prices-api**
+2. **Settings** → check:
+   - Root Directory: `backend`
+   - Build: `pip install -r requirements.txt`
+   - Start: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+3. **Manual Deploy** → **Deploy latest commit**
+4. Wait until **Live**. Test: https://mandi-prices-api.onrender.com/health
+
+### Step 2 — Redeploy website
+1. **mandi-prices-web** → **Settings** → check:
+   - Root Directory: `frontend`
+   - Build: `npm ci && npm run build:render`
+   - Publish Directory: `./dist`
+2. **Redirects/Rewrites** tab → add if missing:
+   - Source: `/*` → Destination: `/index.html` → **Rewrite**
+3. **Manual Deploy** → **Deploy latest commit**
+4. Open: **https://mandi-prices-web.onrender.com**
+
+> First load after idle: 30–60 seconds.
 
 ---
 
-## First-time deploy
+## Sync Blueprint from GitHub (if settings are wrong)
 
-**https://render.com/deploy?repo=https://github.com/tusharphalke19995/Today-s-Mandi-Prices**
+Render → **Blueprints** → your blueprint → **Manual Sync**  
+Or delete both services and redeploy:
 
-Click **Apply** → only **mandi-prices-api** is created.
-
-| URL | Purpose |
-|-----|---------|
-| `https://mandi-prices-api.onrender.com` | **Website** (share this) |
-| `https://mandi-prices-api.onrender.com/api/v1/...` | API |
-| `https://mandi-prices-api.onrender.com/docs` | API docs |
-
-> First load after idle: 30–60 seconds (free tier wake-up).
-
-Full guide: [DEPLOYMENT.md](./DEPLOYMENT.md)
+https://render.com/deploy?repo=https://github.com/tusharphalke19995/Today-s-Mandi-Prices
