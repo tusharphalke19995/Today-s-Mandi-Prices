@@ -21,14 +21,9 @@ Host **Today's Mandi Prices** for free using this stack:
    - [Render](https://dashboard.render.com/register)
    - [Vercel](https://vercel.com/signup)
 
-2. Push your project to GitHub:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit - Today's Mandi Prices"
-   git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/mandi-prices.git
-   git push -u origin main
+2. Your repo is already on GitHub:
+   ```
+   https://github.com/tusharphalke19995/Today-s-Mandi-Prices
    ```
 
 ---

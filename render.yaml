@@ -1,5 +1,5 @@
-# Render Blueprint — optional one-click deploy for backend
-# Docs: https://render.com/docs/blueprint-spec
+# Render Blueprint — one-click free deploy (backend + frontend)
+# Deploy: https://render.com/deploy?repo=https://github.com/tusharphalke19995/Today-s-Mandi-Prices
 
 services:
   - type: web
@@ -17,10 +17,29 @@ services:
       - key: DEBUG
         value: "false"
       - key: DATABASE_URL
-        sync: false
-      - key: CORS_ORIGINS
-        sync: false
+        value: sqlite:///./mandi_prices.db
+      - key: SYNC_ENABLED
+        value: "true"
+      - key: SYNC_INTERVAL_SECONDS
+        value: "3600"
+      - key: CACHE_TTL_SECONDS
+        value: "3600"
       - key: DATA_GOV_API_KEY
-        sync: false
+        value: 579b464db66ec23bdd000001cdd3946e44ce57746370fffc958d3611
       - key: JWT_SECRET_KEY
         generateValue: true
+
+  - type: web
+    name: mandi-prices-web
+    runtime: static
+    region: singapore
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_HOST
+        fromService:
+          type: web
+          name: mandi-prices-api
+          property: host
