@@ -1,4 +1,8 @@
-/** Resolve API base URL for local dev, Render combined deploy, and split web+api deploy. */
+/** Production custom domain + API URL */
+export const CUSTOM_SITE_DOMAIN = 'dailymandiupdate.naliniudyogsamuh.com';
+export const PRODUCTION_API_URL = 'https://mandi-prices-api.onrender.com/api/v1';
+
+/** Resolve API base URL for local dev, Render, Vercel, and custom domain. */
 export function getApiBaseUrl(): string {
   const envBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
   const envHost = import.meta.env.VITE_API_HOST as string | undefined;
@@ -11,8 +15,11 @@ export function getApiBaseUrl(): string {
     if (host.includes('mandi-prices-api')) {
       return '/api/v1';
     }
+    if (host.includes('naliniudyogsamuh.com')) {
+      return PRODUCTION_API_URL;
+    }
     if (host.includes('onrender.com') || host.includes('vercel.app')) {
-      return 'https://mandi-prices-api.onrender.com/api/v1';
+      return PRODUCTION_API_URL;
     }
   }
 

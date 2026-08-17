@@ -30,3 +30,5 @@ services:
         generateValue: true
       - key: SYNC_API_KEY
         generateValue: true
+      - key: CORS_ORIGINS
+        value: https://dailymandiupdate.naliniudyogsamuh.com

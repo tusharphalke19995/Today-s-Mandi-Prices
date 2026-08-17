@@ -63,8 +63,15 @@ if settings.debug:
     cors_kwargs["allow_origin_regex"] = r"https?://.*"
 else:
     cors_kwargs["allow_origin_regex"] = (
-        r"https://([a-z0-9-]+\.)*(vercel\.app|onrender\.com)$"
+        r"https://([a-z0-9-]+\.)*(vercel\.app|onrender\.com|naliniudyogsamuh\.com)$"
     )
+    custom_origins = [
+        o
+        for o in settings.cors_origins_list
+        if o not in ("http://localhost:5173", "http://localhost:3000")
+    ]
+    if custom_origins:
+        cors_kwargs["allow_origins"] = custom_origins
 
 app.add_middleware(CORSMiddleware, **cors_kwargs)
 
