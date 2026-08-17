@@ -1,16 +1,19 @@
-# Render — API only (Docker). Website on Vercel.
-# Deploy: https://render.com/deploy?repo=https://github.com/tusharphalke19995/Today-s-Mandi-Prices
+# Render — Python API (simplest, most reliable)
+# Fresh deploy: https://render.com/deploy?repo=https://github.com/tusharphalke19995/Today-s-Mandi-Prices
 
 services:
   - type: web
     name: mandi-prices-api
-    runtime: docker
+    runtime: python
     plan: free
     region: singapore
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.0"
       - key: DEBUG
         value: "false"
       - key: DATABASE_URL
