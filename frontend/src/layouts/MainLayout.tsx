@@ -15,6 +15,7 @@ import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
 import { useAppStore } from '@/store/appStore';
 import { useTranslation } from '@/i18n';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { fadeIn, pulseRing } from '@/theme/animations';
 
 export function MainLayout() {
   const { darkMode, toggleDarkMode } = useAppStore();
@@ -28,24 +29,26 @@ export function MainLayout() {
         position="sticky"
         elevation={0}
         sx={{
-          backdropFilter: 'blur(16px)',
-          bgcolor: (theme) => alpha(theme.palette.background.paper, isHome ? 0.72 : 0.92),
+          backdropFilter: 'blur(20px)',
+          bgcolor: (theme) => alpha(theme.palette.background.paper, isHome ? 0.75 : 0.92),
           borderBottom: 1,
           borderColor: 'divider',
+          animation: `${fadeIn} 0.5s ease`,
         }}
       >
         <Toolbar sx={{ minHeight: { xs: 56, sm: 64 }, gap: 1 }}>
           <Box
             sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 2,
+              width: 40,
+              height: 40,
+              borderRadius: 2.5,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
               mr: { xs: 0.5, sm: 1 },
               flexShrink: 0,
+              animation: `${pulseRing} 2.5s ease-in-out infinite`,
             }}
           >
             <AgricultureIcon sx={{ color: 'primary.main', fontSize: 22 }} />

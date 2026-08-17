@@ -4,6 +4,7 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SearchOffIcon from '@mui/icons-material/SearchOff';
 import AgricultureIcon from '@mui/icons-material/Agriculture';
 import { useTranslation } from '@/i18n';
+import { fadeInUp, floatSlow } from '@/theme/animations';
 
 interface EmptyStateProps {
   type?: 'empty' | 'error' | 'offline';
@@ -52,15 +53,17 @@ export function EmptyState({
         py: 8,
         px: 3,
         textAlign: 'center',
+        animation: `${fadeInUp} 0.6s ease forwards`,
       }}
     >
       <Box
         sx={{
           color: config.color,
           mb: 2,
-          p: 2,
+          p: 2.5,
           borderRadius: '50%',
           bgcolor: alpha(config.color, 0.1),
+          animation: `${floatSlow} 3s ease-in-out infinite`,
         }}
       >
         {config.icon}

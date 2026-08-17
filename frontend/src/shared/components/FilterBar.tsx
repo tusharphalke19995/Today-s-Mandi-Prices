@@ -67,11 +67,12 @@ export function FilterBar({ search, onSearchChange }: FilterBarProps) {
       elevation={0}
       sx={{
         p: { xs: 2, md: 2.5 },
-        borderRadius: 3,
+        borderRadius: 4,
         border: 1,
-        borderColor: 'divider',
-        bgcolor: 'background.paper',
-        boxShadow: (theme) => `0 8px 32px ${alpha(theme.palette.primary.main, 0.08)}`,
+        borderColor: (theme) => alpha(theme.palette.primary.main, 0.12),
+        bgcolor: (theme) => alpha(theme.palette.background.paper, 0.92),
+        backdropFilter: 'blur(16px)',
+        boxShadow: (theme) => `0 12px 40px ${alpha(theme.palette.primary.main, 0.1)}`,
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>

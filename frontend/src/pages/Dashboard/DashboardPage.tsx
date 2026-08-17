@@ -29,6 +29,8 @@ import { useAppStore } from '@/store/appStore';
 import { useTranslation } from '@/i18n';
 import { useDebounce } from '@/utils/debounce';
 import { getTodayFormatted, formatUpdatedTime } from '@/utils/formatters';
+import { AnimatedBox } from '@/shared/components/AnimatedBox';
+import { fadeIn, float, gradientShift } from '@/theme/animations';
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -78,17 +80,37 @@ export function DashboardPage() {
           position: 'relative',
           overflow: 'hidden',
           background: (theme) =>
-            `linear-gradient(120deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 55%, ${alpha(theme.palette.primary.light, 0.9)} 100%)`,
+            `linear-gradient(-45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main}, #1b5e20, ${theme.palette.secondary.dark})`,
+          backgroundSize: '400% 400%',
+          animation: `${gradientShift} 12s ease infinite`,
           color: 'white',
-          pt: { xs: 3, md: 4 },
-          pb: { xs: 10, md: 11 },
+          pt: { xs: 3, md: 5 },
+          pb: { xs: 11, md: 12 },
         }}
       >
+        {/* Floating crop icons */}
+        {['🌾', '🍅', '🧅', '🥔'].map((emoji, i) => (
+          <Box
+            key={emoji}
+            sx={{
+              position: 'absolute',
+              fontSize: { xs: '1.75rem', md: '2.5rem' },
+              opacity: 0.15,
+              animation: `${float} ${4 + i}s ease-in-out infinite`,
+              animationDelay: `${i * 0.8}s`,
+              top: `${15 + i * 12}%`,
+              right: `${8 + i * 18}%`,
+              pointerEvents: 'none',
+            }}
+          >
+            {emoji}
+          </Box>
+        ))}
         <Box
           sx={{
             position: 'absolute',
             inset: 0,
-            opacity: 0.08,
+            opacity: 0.06,
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
           }}
         />
@@ -99,9 +121,9 @@ export function DashboardPage() {
             justifyContent="space-between"
             spacing={2}
           >
-            <Box>
+            <Box sx={{ animation: `${fadeIn} 0.8s ease forwards` }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, opacity: 0.95 }}>
-                <WbSunnyIcon fontSize="small" />
+                <WbSunnyIcon fontSize="small" sx={{ animation: `${float} 3s ease-in-out infinite` }} />
                 <Typography variant="body2" fontWeight={600}>
                   {t('welcomeFarmer')}
                 </Typography>
@@ -109,11 +131,16 @@ export function DashboardPage() {
               <Typography
                 variant="h4"
                 fontWeight={800}
-                sx={{ fontSize: { xs: '1.5rem', sm: '1.85rem', md: '2.1rem' }, lineHeight: 1.2 }}
+                sx={{
+                  fontSize: { xs: '1.65rem', sm: '2rem', md: '2.35rem' },
+                  lineHeight: 1.15,
+                  fontFamily: '"Poppins", sans-serif',
+                  textShadow: '0 2px 20px rgba(0,0,0,0.15)',
+                }}
               >
                 {t('heroTitle')}
               </Typography>
-              <Typography variant="body2" sx={{ mt: 0.75, opacity: 0.92, maxWidth: 520, lineHeight: 1.6 }}>
+              <Typography variant="body1" sx={{ mt: 1, opacity: 0.92, maxWidth: 520, lineHeight: 1.65 }}>
                 {t('heroSubtitle')}
               </Typography>
             </Box>
@@ -122,22 +149,26 @@ export function DashboardPage() {
                 icon={<CalendarTodayIcon sx={{ color: 'white !important' }} />}
                 label={getTodayFormatted(language)}
                 sx={{
-                  bgcolor: alpha('#fff', 0.18),
+                  bgcolor: alpha('#fff', 0.2),
                   color: 'white',
-                  fontWeight: 600,
-                  backdropFilter: 'blur(8px)',
-                  border: `1px solid ${alpha('#fff', 0.2)}`,
+                  fontWeight: 700,
+                  backdropFilter: 'blur(12px)',
+                  border: `1px solid ${alpha('#fff', 0.25)}`,
+                  transition: 'transform 0.2s ease',
+                  '&:hover': { transform: 'scale(1.04)' },
                 }}
               />
               <Chip
                 icon={<LocationOnIcon sx={{ color: 'white !important' }} />}
                 label={activeState}
                 sx={{
-                  bgcolor: alpha('#fff', 0.18),
+                  bgcolor: alpha('#fff', 0.2),
                   color: 'white',
-                  fontWeight: 600,
-                  backdropFilter: 'blur(8px)',
-                  border: `1px solid ${alpha('#fff', 0.2)}`,
+                  fontWeight: 700,
+                  backdropFilter: 'blur(12px)',
+                  border: `1px solid ${alpha('#fff', 0.25)}`,
+                  transition: 'transform 0.2s ease',
+                  '&:hover': { transform: 'scale(1.04)' },
                 }}
               />
             </Stack>
@@ -145,23 +176,31 @@ export function DashboardPage() {
         </Container>
       </Box>
 
-      <Container maxWidth="lg" sx={{ mt: { xs: -7, md: -8 }, position: 'relative', zIndex: 2 }}>
-        <FilterBar search={search} onSearchChange={handleSearchChange} />
-        <QuickMarketChips onPageReset={() => setPage(1)} />
-        <Alert
-          severity="info"
-          icon={false}
-          sx={{
-            mt: 2,
-            borderRadius: 2,
-            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-            color: 'text.primary',
-            fontWeight: 600,
-            '& .MuiAlert-message': { width: '100%' },
-          }}
-        >
-          {t('sellTip')}
-        </Alert>
+      <Container maxWidth="lg" sx={{ mt: { xs: -8, md: -9 }, position: 'relative', zIndex: 2 }}>
+        <AnimatedBox animation="slideDown" index={0}>
+          <FilterBar search={search} onSearchChange={handleSearchChange} />
+        </AnimatedBox>
+        <AnimatedBox animation="fadeInUp" index={1} delayMs={100}>
+          <QuickMarketChips onPageReset={() => setPage(1)} />
+        </AnimatedBox>
+        <AnimatedBox animation="fadeInUp" index={2} delayMs={100}>
+          <Alert
+            severity="info"
+            icon={false}
+            sx={{
+              mt: 2,
+              borderRadius: 3,
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+              color: 'text.primary',
+              fontWeight: 600,
+              border: 1,
+              borderColor: (theme) => alpha(theme.palette.primary.main, 0.15),
+              '& .MuiAlert-message': { width: '100%' },
+            }}
+          >
+            {t('sellTip')}
+          </Alert>
+        </AnimatedBox>
       </Container>
 
       <Container maxWidth="lg" sx={{ mt: 3 }}>
@@ -270,7 +309,7 @@ export function DashboardPage() {
         {!isLoading && !isError && data && data.items.length > 0 && (
           <>
             <Grid container spacing={3} justifyContent={singleResult ? 'center' : 'flex-start'}>
-              {data.items.map((price) => (
+              {data.items.map((price, index) => (
                 <Grid
                   item
                   xs={12}
@@ -281,6 +320,7 @@ export function DashboardPage() {
                 >
                   <PriceCard
                     price={price}
+                    index={index}
                     onClick={() => price.id && navigate(`/commodity/${price.id}`)}
                   />
                 </Grid>
