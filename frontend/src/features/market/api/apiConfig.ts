@@ -8,11 +8,9 @@ export function getApiBaseUrl(): string {
 
   if (import.meta.env.PROD && typeof window !== 'undefined') {
     const host = window.location.hostname;
-    // API service serves both website + API on the same host
     if (host.includes('mandi-prices-api')) {
       return '/api/v1';
     }
-    // Website on mandi-prices-web calls the API service
     if (host.includes('onrender.com') || host.includes('vercel.app')) {
       return 'https://mandi-prices-api.onrender.com/api/v1';
     }
@@ -21,27 +19,47 @@ export function getApiBaseUrl(): string {
   return '/api/v1';
 }
 
-export function getApiOrigin(): string {
-  const base = getApiBaseUrl();
-  if (base.startsWith('http')) {
-    return base.replace(/\/api\/v1\/?$/, '');
+const WAKE_ATTEMPTS = 8;
+const WAKE_TIMEOUT_MS = 120_000;
+const WAKE_RETRY_GAP_MS = 10_000;
+
+let apiWakePromise: Promise<boolean> | null = null;
+
+/**
+ * Wake Render free-tier API before data requests.
+ * Uses /api/v1/ping — NOT /health (ad blockers block "health" URLs).
+ */
+export async function wakeApiServer(): Promise<boolean> {
+  if (!import.meta.env.PROD) return true;
+
+  const pingUrl = `${getApiBaseUrl()}/ping`;
+
+  for (let attempt = 0; attempt < WAKE_ATTEMPTS; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), WAKE_TIMEOUT_MS);
+      const res = await fetch(pingUrl, { signal: controller.signal, cache: 'no-store' });
+      clearTimeout(timer);
+      if (res.ok) return true;
+    } catch {
+      // Server still waking — retry
+    }
+    if (attempt < WAKE_ATTEMPTS - 1) {
+      await new Promise((r) => setTimeout(r, WAKE_RETRY_GAP_MS));
+    }
   }
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
-  return 'https://mandi-prices-api.onrender.com';
+  return false;
 }
 
-/** Ping API to wake Render free tier before loading prices. */
-export async function wakeApiServer(): Promise<void> {
-  const origin = getApiOrigin();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 90000);
-  try {
-    await fetch(`${origin}/health`, { signal: controller.signal });
-  } catch {
-    // Server may still be waking — price requests will retry
-  } finally {
-    clearTimeout(timer);
+export function ensureApiAwake(): Promise<boolean> {
+  if (!import.meta.env.PROD) return Promise.resolve(true);
+  if (!apiWakePromise) {
+    apiWakePromise = wakeApiServer();
   }
+  return apiWakePromise;
+}
+
+/** Call before manual retry so wake runs again after a failed load. */
+export function resetApiWake(): void {
+  apiWakePromise = null;
 }

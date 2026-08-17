@@ -60,6 +60,10 @@ export const en: Translations = {
   pune: 'Pune',
   manchar: 'Manchar',
   junnar: 'Junnar',
+  serverWaking: 'Server waking up...',
+  serverWakingTip: 'Free server may take 1–2 minutes on first load. Please wait.',
+  serverTimeoutTitle: 'Server is slow to respond',
+  serverTimeoutMessage: 'Render free server is waking up. Wait 1 minute and tap Try Again. If using an ad blocker, disable it for this site.',
 };
 
 export const hi: Translations = {
@@ -122,6 +126,10 @@ export const hi: Translations = {
   pune: 'Pune',
   manchar: 'Manchar',
   junnar: 'Junnar',
+  serverWaking: 'सर्वर जाग रहा है...',
+  serverWakingTip: 'पहली बार लोड में १–२ मिनट लग सकते हैं। कृपया प्रतीक्षा करें।',
+  serverTimeoutTitle: 'सर्वर धीमी प्रतिक्रिया दे रहा है',
+  serverTimeoutMessage: 'Render free सर्वर जाग रहा है। १ मिनट रुकें और फिर Try Again दबाएँ। Ad blocker बंद करें।',
 };
 
 export const mr: Translations = {
@@ -184,4 +192,8 @@ export const mr: Translations = {
   pune: 'Pune',
   manchar: 'Manchar',
   junnar: 'Junnar',
+  serverWaking: 'सर्वर जागत आहे...',
+  serverWakingTip: 'पहिल्या लोडला १–२ मिनिट लागू शकतात. कृपया थांबा.',
+  serverTimeoutTitle: 'सर्वर हळू प्रतिसाद देत आहे',
+  serverTimeoutMessage: 'Render free सर्वर जाग होत आहे. १ मिनिट थांबा आणि Try Again दाबा. Ad blocker बंद करा.',
 };

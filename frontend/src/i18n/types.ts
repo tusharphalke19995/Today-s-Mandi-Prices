@@ -60,6 +60,10 @@ export interface Translations {
   pune: string;
   manchar: string;
   junnar: string;
+  serverWaking: string;
+  serverWakingTip: string;
+  serverTimeoutTitle: string;
+  serverTimeoutMessage: string;
 }
 
 export type TranslationKey = keyof Translations;

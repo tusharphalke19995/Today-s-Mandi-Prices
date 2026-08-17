@@ -23,7 +23,7 @@ import { QuickMarketChips } from '@/shared/components/QuickMarketChips';
 import { PriceCard } from '@/shared/components/PriceCard';
 import { PriceGridSkeleton } from '@/shared/components/PriceCardSkeleton';
 import { EmptyState } from '@/shared/components/EmptyState';
-import { useTodayPrices, useSyncStatus } from '@/features/market/hooks/useMarketQueries';
+import { useTodayPrices, useSyncStatus, resetApiWake } from '@/features/market/hooks/useMarketQueries';
 import { useAppStore } from '@/store/appStore';
 import { useTranslation } from '@/i18n';
 import { useDebounce } from '@/utils/debounce';
@@ -62,6 +62,11 @@ export function DashboardPage() {
   const isOffline = error instanceof Error && error.message === 'NETWORK_ERROR';
   const singleResult = data?.total === 1;
   const resultLabel = data?.total === 1 ? t('result') : t('results');
+
+  const handleRetry = () => {
+    resetApiWake();
+    refetch();
+  };
 
   return (
     <Box sx={{ pb: 6 }}>
@@ -224,11 +229,32 @@ export function DashboardPage() {
           </Box>
         </Paper>
 
-        {isLoading && <PriceGridSkeleton count={6} />}
+        {isLoading && (
+          <>
+            <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+              {t('serverWaking')} {t('serverWakingTip')}
+            </Alert>
+            <PriceGridSkeleton count={6} />
+          </>
+        )}
 
-        {isOffline && <EmptyState type="offline" onRetry={() => refetch()} />}
+        {isOffline && (
+          <EmptyState
+            type="offline"
+            title={t('serverTimeoutTitle')}
+            message={t('serverTimeoutMessage')}
+            onRetry={handleRetry}
+          />
+        )}
 
-        {isError && !isOffline && <EmptyState type="error" onRetry={() => refetch()} />}
+        {isError && !isOffline && (
+          <EmptyState
+            type="error"
+            title={t('serverTimeoutTitle')}
+            message={t('serverTimeoutMessage')}
+            onRetry={handleRetry}
+          />
+        )}
 
         {!isLoading && !isError && data?.items.length === 0 && <EmptyState type="empty" />}
 
