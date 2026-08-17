@@ -64,6 +64,7 @@ export const en: Translations = {
   serverWakingTip: 'Free server may take 1–2 minutes on first load. Please wait.',
   serverTimeoutTitle: 'Server is slow to respond',
   serverTimeoutMessage: 'Render free server is waking up. Wait 1 minute and tap Try Again. If using an ad blocker, disable it for this site.',
+  fallbackBanner: '📦 Showing local mandi rates — live server unavailable. Filters still work.',
 };
 
 export const hi: Translations = {
@@ -130,6 +131,7 @@ export const hi: Translations = {
   serverWakingTip: 'पहली बार लोड में १–२ मिनट लग सकते हैं। कृपया प्रतीक्षा करें।',
   serverTimeoutTitle: 'सर्वर धीमी प्रतिक्रिया दे रहा है',
   serverTimeoutMessage: 'Render free सर्वर जाग रहा है। १ मिनट रुकें और फिर Try Again दबाएँ। Ad blocker बंद करें।',
+  fallbackBanner: '📦 स्थानीय मंडी भाव दिख रहे हैं — लाइव सर्वर उपलब्ध नहीं। फ़िल्टर काम करेंगे।',
 };
 
 export const mr: Translations = {
@@ -196,4 +198,5 @@ export const mr: Translations = {
   serverWakingTip: 'पहिल्या लोडला १–२ मिनिट लागू शकतात. कृपया थांबा.',
   serverTimeoutTitle: 'सर्वर हळू प्रतिसाद देत आहे',
   serverTimeoutMessage: 'Render free सर्वर जाग होत आहे. १ मिनिट थांबा आणि Try Again दाबा. Ad blocker बंद करा.',
+  fallbackBanner: '📦 स्थानिक मंडी भाव दाखवत आहे — लाइव्ह सर्वर उपलब्ध नाही. फिल्टर चालतील.',
 };

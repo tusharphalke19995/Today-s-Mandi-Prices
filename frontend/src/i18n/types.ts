@@ -64,6 +64,7 @@ export interface Translations {
   serverWakingTip: string;
   serverTimeoutTitle: string;
   serverTimeoutMessage: string;
+  fallbackBanner: string;
 }
 
 export type TranslationKey = keyof Translations;

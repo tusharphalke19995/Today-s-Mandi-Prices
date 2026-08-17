@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { marketApi } from '../api/marketApi';
-import { ensureApiAwake, resetApiWake } from '../api/apiConfig';
+import { resetApiWake } from '../api/apiConfig';
 import type { PriceFilters } from '../models/types';
 import { PRICE_REFRESH_INTERVAL_MS } from '../constants';
 
@@ -22,19 +22,14 @@ const hourlyQuery = {
   staleTime: PRICE_REFRESH_INTERVAL_MS,
   refetchInterval: PRICE_REFRESH_INTERVAL_MS,
   refetchOnWindowFocus: true,
-  retry: 5,
-  retryDelay: (attempt: number) => Math.min(10000 * 2 ** attempt, 90000),
+  retry: 1,
+  retryDelay: 3000,
 };
-
-async function loadAfterWake<T>(loader: () => Promise<T>): Promise<T> {
-  await ensureApiAwake();
-  return loader();
-}
 
 export function useStates() {
   return useQuery({
     queryKey: marketKeys.states(),
-    queryFn: () => loadAfterWake(() => marketApi.getStates()),
+    queryFn: marketApi.getStates,
     ...hourlyQuery,
   });
 }
@@ -42,7 +37,7 @@ export function useStates() {
 export function useDistricts(state: string) {
   return useQuery({
     queryKey: marketKeys.districts(state),
-    queryFn: () => loadAfterWake(() => marketApi.getDistricts(state)),
+    queryFn: () => marketApi.getDistricts(state),
     enabled: !!state,
     ...hourlyQuery,
   });
@@ -51,7 +46,7 @@ export function useDistricts(state: string) {
 export function useMarkets(district: string, state?: string) {
   return useQuery({
     queryKey: marketKeys.markets(district, state),
-    queryFn: () => loadAfterWake(() => marketApi.getMarkets(district, state)),
+    queryFn: () => marketApi.getMarkets(district, state),
     enabled: !!district,
     ...hourlyQuery,
   });
@@ -60,7 +55,7 @@ export function useMarkets(district: string, state?: string) {
 export function useCommodities() {
   return useQuery({
     queryKey: marketKeys.commodities(),
-    queryFn: () => loadAfterWake(() => marketApi.getCommodities()),
+    queryFn: marketApi.getCommodities,
     ...hourlyQuery,
   });
 }
@@ -68,7 +63,7 @@ export function useCommodities() {
 export function useTodayPrices(filters: PriceFilters) {
   return useQuery({
     queryKey: marketKeys.todayPrices(filters),
-    queryFn: () => loadAfterWake(() => marketApi.getTodayPrices(filters)),
+    queryFn: () => marketApi.getTodayPrices(filters),
     ...hourlyQuery,
     placeholderData: (prev) => prev,
   });
@@ -77,7 +72,7 @@ export function useTodayPrices(filters: PriceFilters) {
 export function usePriceDetail(id: number) {
   return useQuery({
     queryKey: marketKeys.priceDetail(id),
-    queryFn: () => loadAfterWake(() => marketApi.getPriceById(id)),
+    queryFn: () => marketApi.getPriceById(id),
     enabled: id > 0,
     ...hourlyQuery,
   });
@@ -86,9 +81,9 @@ export function usePriceDetail(id: number) {
 export function useSyncStatus() {
   return useQuery({
     queryKey: marketKeys.syncStatus(),
-    queryFn: () => loadAfterWake(() => marketApi.getSyncStatus()),
+    queryFn: marketApi.getSyncStatus,
     staleTime: 60 * 1000,
     refetchInterval: 60 * 1000,
-    retry: 5,
+    retry: 1,
   });
 }

@@ -19,16 +19,12 @@ export function getApiBaseUrl(): string {
   return '/api/v1';
 }
 
-const WAKE_ATTEMPTS = 8;
-const WAKE_TIMEOUT_MS = 120_000;
-const WAKE_RETRY_GAP_MS = 10_000;
+const WAKE_ATTEMPTS = 2;
+const WAKE_TIMEOUT_MS = 25_000;
 
 let apiWakePromise: Promise<boolean> | null = null;
 
-/**
- * Wake Render free-tier API before data requests.
- * Uses /api/v1/ping — NOT /health (ad blockers block "health" URLs).
- */
+/** Quick ping — fail fast and use embedded fallback data if API unreachable. */
 export async function wakeApiServer(): Promise<boolean> {
   if (!import.meta.env.PROD) return true;
 
@@ -42,10 +38,10 @@ export async function wakeApiServer(): Promise<boolean> {
       clearTimeout(timer);
       if (res.ok) return true;
     } catch {
-      // Server still waking — retry
+      // API unreachable
     }
     if (attempt < WAKE_ATTEMPTS - 1) {
-      await new Promise((r) => setTimeout(r, WAKE_RETRY_GAP_MS));
+      await new Promise((r) => setTimeout(r, 3000));
     }
   }
   return false;
@@ -59,7 +55,6 @@ export function ensureApiAwake(): Promise<boolean> {
   return apiWakePromise;
 }
 
-/** Call before manual retry so wake runs again after a failed load. */
 export function resetApiWake(): void {
   apiWakePromise = null;
 }

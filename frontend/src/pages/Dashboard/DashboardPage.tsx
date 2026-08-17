@@ -24,6 +24,7 @@ import { PriceCard } from '@/shared/components/PriceCard';
 import { PriceGridSkeleton } from '@/shared/components/PriceCardSkeleton';
 import { EmptyState } from '@/shared/components/EmptyState';
 import { useTodayPrices, useSyncStatus, resetApiWake } from '@/features/market/hooks/useMarketQueries';
+import { useApiModeStore } from '@/store/apiModeStore';
 import { useAppStore } from '@/store/appStore';
 import { useTranslation } from '@/i18n';
 import { useDebounce } from '@/utils/debounce';
@@ -52,6 +53,7 @@ export function DashboardPage() {
 
   const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useTodayPrices(queryFilters);
   const { data: syncStatus } = useSyncStatus();
+  const apiMode = useApiModeStore((s) => s.mode);
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
@@ -59,12 +61,13 @@ export function DashboardPage() {
     setPage(1);
   };
 
-  const isOffline = error instanceof Error && error.message === 'NETWORK_ERROR';
+  const isOffline = error instanceof Error && error.message === 'NETWORK_ERROR' && apiMode !== 'fallback';
   const singleResult = data?.total === 1;
   const resultLabel = data?.total === 1 ? t('result') : t('results');
 
   const handleRetry = () => {
     resetApiWake();
+    useApiModeStore.getState().setMode('checking');
     refetch();
   };
 
@@ -229,7 +232,13 @@ export function DashboardPage() {
           </Box>
         </Paper>
 
-        {isLoading && (
+        {apiMode === 'fallback' && (
+          <Alert severity="warning" sx={{ mb: 2, borderRadius: 2, fontWeight: 600 }}>
+            {t('fallbackBanner')}
+          </Alert>
+        )}
+
+        {isLoading && apiMode !== 'fallback' && (
           <>
             <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
               {t('serverWaking')} {t('serverWakingTip')}
