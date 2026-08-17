@@ -1,19 +1,19 @@
-# Render Blueprint — free hosting (API + website)
+# Render — ONE service (website + API together)
 # Deploy: https://render.com/deploy?repo=https://github.com/tusharphalke19995/Today-s-Mandi-Prices
+#
+# LIVE URL: https://mandi-prices-api.onrender.com
+# (Do NOT use mandi-prices-web — delete that old service)
 
 services:
-  # Backend API (+ website fallback at same URL)
   - type: web
     name: mandi-prices-api
-    runtime: python
-    region: singapore
+    runtime: docker
     plan: free
-    buildCommand: bash scripts/render-build.sh
-    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     healthCheckPath: /health
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.12.0"
       - key: DEBUG
         value: "false"
       - key: DATABASE_URL
@@ -30,21 +30,3 @@ services:
         generateValue: true
       - key: SYNC_API_KEY
         generateValue: true
-
-  # Public website — Node web service (more reliable than static site)
-  - type: web
-    name: mandi-prices-web
-    runtime: node
-    region: singapore
-    plan: free
-    rootDir: frontend
-    buildCommand: npm ci && npm run build:render
-    startCommand: npm run start:render
-    envVars:
-      - key: NODE_VERSION
-        value: "20.11.0"
-      - key: VITE_API_HOST
-        fromService:
-          type: web
-          name: mandi-prices-api
-          property: host

@@ -94,7 +94,22 @@ def _mount_frontend(app: FastAPI) -> None:
     static_dir = Path(__file__).resolve().parent.parent / "static"
     index_file = static_dir / "index.html"
     if not index_file.is_file():
+        logger.warning("Frontend static files not found at %s — website will not load at /", static_dir)
+
+        @app.get("/")
+        async def api_root():
+            return {
+                "app": settings.app_name,
+                "status": "api_only",
+                "message": "Website build missing. Redeploy with Docker.",
+                "health": "/health",
+                "docs": "/docs",
+                "api": settings.api_v1_prefix,
+            }
+
         return
+
+    logger.info("Serving website from %s", static_dir)
 
     assets_dir = static_dir / "assets"
     if assets_dir.is_dir():

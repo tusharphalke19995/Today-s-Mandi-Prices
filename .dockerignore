@@ -1,0 +1,14 @@
+.git
+**/.git
+**/node_modules
+**/venv
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.env
+**/*.db
+**/dist
+backend/static
+frontend/dist
+.cursor
+terminals

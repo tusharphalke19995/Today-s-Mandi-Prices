@@ -1,68 +1,69 @@
-# Dynamic features on Render (live prices, filters, hourly sync)
+# Hosting — Today's Mandi Prices
 
-## What works dynamically
+## Your live URL (use this only)
 
-| Feature | How |
-|---------|-----|
-| Live mandi prices | Agmarknet API sync every 1 hour |
-| Mumbai / Pune / Manchar / Junnar | Priority sync + quick filter chips |
-| State / District / Mandi / Crop filters | Loaded from database |
-| Search | Real-time API query |
-| Language switch (Hindi/Marathi/English) | Client-side |
-| Price refresh | Auto every 1 hour in browser |
+### https://mandi-prices-api.onrender.com
+
+Website + API + filters + live prices — all on this one URL.
 
 ---
 
-## Keep it alive on Render free tier (IMPORTANT)
+## mandi-prices-web NOT working?
 
-Render free tier **sleeps after 15 min**. Without these, sync stops and first load is slow.
+**Delete it.** The old `mandi-prices-web` service is broken (Static Site).
 
-### 1. UptimeRobot — wake server every 14 min (free)
-
-1. https://uptimerobot.com → free account
-2. **Add Monitor**:
-   - Type: HTTP(s)
-   - URL: `https://mandi-prices-api.onrender.com/health`
-   - Interval: **5 minutes** (or 14 min)
-
-### 2. cron-job.org — hourly price sync (free)
-
-1. https://cron-job.org → free account
-2. **Create cron job**:
-   - URL: `https://mandi-prices-api.onrender.com/api/v1/sync/run`
-   - Method: **POST**
-   - Schedule: **Every hour** (`0 * * * *`)
-   - Header: `X-Sync-Key: <your SYNC_API_KEY from Render env>`
-
-Get `SYNC_API_KEY` from Render → **mandi-prices-api** → **Environment**.
+1. Render Dashboard → **mandi-prices-web** → Settings → **Delete**
+2. Use **mandi-prices-api** only (see above)
 
 ---
 
-## Deploy checklist
+## Fix deploy (5 minutes)
 
-- [ ] **mandi-prices-api** redeployed (latest GitHub commit)
-- [ ] **mandi-prices-web** is **Node Web Service** (not Static Site)
-- [ ] UptimeRobot pinging `/health`
-- [ ] cron-job.org POST `/api/v1/sync/run` hourly
-- [ ] Test filters, search, quick market chips
-- [ ] Test commodity detail page (click a price card)
+### Step 1 — Update mandi-prices-api to Docker
+
+1. [Render Dashboard](https://dashboard.render.com) → **mandi-prices-api**
+2. **Settings** → **Build & Deploy**:
+   - **Runtime**: change to **Docker**
+   - **Dockerfile Path**: `./Dockerfile`
+   - **Docker Context**: `.` (repo root)
+3. **Save**
+
+### Step 2 — Redeploy
+
+1. **Manual Deploy** → **Deploy latest commit**
+2. Wait **10–15 minutes** (Docker builds frontend + backend)
+3. Open: **https://mandi-prices-api.onrender.com**
+
+### Step 3 — Test
+
+| URL | Expected |
+|-----|----------|
+| https://mandi-prices-api.onrender.com | Dashboard with mandi prices |
+| https://mandi-prices-api.onrender.com/health | `{"status":"healthy",...}` |
+| https://mandi-prices-api.onrender.com/docs | API documentation |
+
+> First visit after idle: wait **30–60 seconds** (free tier waking up).
 
 ---
 
-## Test URLs
+## Fresh deploy (if stuck)
 
+1. Delete both old services on Render
+2. Open: https://render.com/deploy?repo=https://github.com/tusharphalke19995/Today-s-Mandi-Prices
+3. Click **Apply** → creates **mandi-prices-api** (Docker)
+4. URL: **https://mandi-prices-api.onrender.com**
+
+---
+
+## Keep live prices updating (free)
+
+**UptimeRobot** — ping every 5 min:
 ```
-Health:   https://mandi-prices-api.onrender.com/health
-Sync:     https://mandi-prices-api.onrender.com/api/v1/sync/status
-Prices:   https://mandi-prices-api.onrender.com/api/v1/today-prices?areas=Mumbai,Pune,Manchar,Junnar&state=Maharashtra
-Website:  https://mandi-prices-web.onrender.com
-          OR https://mandi-prices-api.onrender.com
+https://mandi-prices-api.onrender.com/health
 ```
 
----
-
-## If filters show empty
-
-1. Wait 1–2 min after first load (API waking + syncing)
-2. Check sync status URL above — `last_sync_at` should update
-3. Manually trigger sync: POST to `/api/v1/sync/run` with `X-Sync-Key` header
+**cron-job.org** — sync every hour:
+```
+POST https://mandi-prices-api.onrender.com/api/v1/sync/run
+Header: X-Sync-Key: (from Render → Environment → SYNC_API_KEY)
+```
