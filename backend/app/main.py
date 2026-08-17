@@ -3,7 +3,7 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -94,39 +94,23 @@ def _mount_frontend(app: FastAPI) -> None:
     static_dir = Path(__file__).resolve().parent.parent / "static"
     index_file = static_dir / "index.html"
     if not index_file.is_file():
-        logger.warning("Frontend static files not found at %s — website will not load at /", static_dir)
+        logger.info("No frontend static files — API-only mode (use Vercel for website)")
 
         @app.get("/")
         async def api_root():
             return {
                 "app": settings.app_name,
-                "status": "api_only",
-                "message": "Website build missing. Redeploy with Docker.",
+                "status": "ok",
                 "health": "/health",
                 "docs": "/docs",
                 "api": settings.api_v1_prefix,
+                "website": "Deploy frontend on Vercel — see HOSTING.md",
             }
 
         return
 
     logger.info("Serving website from %s", static_dir)
-
-    assets_dir = static_dir / "assets"
-    if assets_dir.is_dir():
-        app.mount("/assets", StaticFiles(directory=assets_dir), name="frontend-assets")
-
-    @app.get("/")
-    async def serve_root():
-        return FileResponse(index_file)
-
-    @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
-        if full_path.startswith(("api/", "docs", "redoc", "openapi.json", "health")):
-            raise HTTPException(status_code=404)
-        candidate = static_dir / full_path
-        if candidate.is_file():
-            return FileResponse(candidate)
-        return FileResponse(index_file)
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="frontend")
 
 
 _mount_frontend(app)

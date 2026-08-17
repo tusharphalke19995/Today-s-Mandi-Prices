@@ -1,69 +1,96 @@
-# Hosting — Today's Mandi Prices
+# Hosting — WORKING setup (Render API + Vercel website)
 
-## Your live URL (use this only)
+## Why you see "Not Found"
 
-### https://mandi-prices-api.onrender.com
-
-Website + API + filters + live prices — all on this one URL.
-
----
-
-## mandi-prices-web NOT working?
-
-**Delete it.** The old `mandi-prices-web` service is broken (Static Site).
-
-1. Render Dashboard → **mandi-prices-web** → Settings → **Delete**
-2. Use **mandi-prices-api** only (see above)
+Render services are **not running** or **failed to deploy**.  
+The old `mandi-prices-web` URL will never work — delete it.
 
 ---
 
-## Fix deploy (5 minutes)
-
-### Step 1 — Update mandi-prices-api to Docker
+## Step 1 — Backend on Render (API)
 
 1. [Render Dashboard](https://dashboard.render.com) → **mandi-prices-api**
-2. **Settings** → **Build & Deploy**:
-   - **Runtime**: change to **Docker**
-   - **Dockerfile Path**: `./Dockerfile`
-   - **Docker Context**: `.` (repo root)
-3. **Save**
+   - If missing: **New +** → **Web Service** → connect GitHub repo
+2. **Settings → Build & Deploy**:
 
-### Step 2 — Redeploy
+| Setting | Value |
+|---------|-------|
+| Name | `mandi-prices-api` |
+| Runtime | **Docker** |
+| Dockerfile Path | `./Dockerfile` |
+| Docker Context | `.` |
+| Plan | Free |
 
-1. **Manual Deploy** → **Deploy latest commit**
-2. Wait **10–15 minutes** (Docker builds frontend + backend)
-3. Open: **https://mandi-prices-api.onrender.com**
-
-### Step 3 — Test
-
-| URL | Expected |
-|-----|----------|
-| https://mandi-prices-api.onrender.com | Dashboard with mandi prices |
-| https://mandi-prices-api.onrender.com/health | `{"status":"healthy",...}` |
-| https://mandi-prices-api.onrender.com/docs | API documentation |
-
-> First visit after idle: wait **30–60 seconds** (free tier waking up).
+3. **Manual Deploy** → wait 5–8 min
+4. **Test:** https://mandi-prices-api.onrender.com/health  
+   Must show: `{"status":"healthy",...}`  
+   If this fails, website will not work.
 
 ---
 
-## Fresh deploy (if stuck)
+## Step 2 — Frontend on Vercel (Website) — RECOMMENDED
 
-1. Delete both old services on Render
-2. Open: https://render.com/deploy?repo=https://github.com/tusharphalke19995/Today-s-Mandi-Prices
-3. Click **Apply** → creates **mandi-prices-api** (Docker)
-4. URL: **https://mandi-prices-api.onrender.com**
+Vercel is free and reliable for the React app.
+
+1. Go to **https://vercel.com/new**
+2. Import GitHub repo: **Today-s-Mandi-Prices**
+3. Settings:
+
+| Setting | Value |
+|---------|-------|
+| Framework | Vite |
+| Root Directory | `frontend` |
+| Build Command | `npm run build:render` |
+| Output | `dist` |
+
+4. Environment variable (already in `.env.production`, but add to be safe):
+
+| Key | Value |
+|-----|-------|
+| `VITE_API_BASE_URL` | `https://mandi-prices-api.onrender.com/api/v1` |
+
+5. Click **Deploy** → you get: `https://todays-mandi-prices.vercel.app` (or similar)
+
+**Share this Vercel URL with farmers** — it always works.
 
 ---
 
-## Keep live prices updating (free)
+## Your URLs
+
+```
+Website (share this):  https://YOUR-APP.vercel.app
+API:                   https://mandi-prices-api.onrender.com
+Health check:          https://mandi-prices-api.onrender.com/health
+API docs:              https://mandi-prices-api.onrender.com/docs
+```
+
+---
+
+## Optional — All-in-one on Render
+
+If you want ONE URL on Render only:
+
+1. Render → mandi-prices-api → Settings
+2. Dockerfile Path: `./Dockerfile.fullstack`
+3. Redeploy → use https://mandi-prices-api.onrender.com
+
+---
+
+## Delete broken service
+
+Render → **mandi-prices-web** → Settings → **Delete**
+
+---
+
+## Keep prices live (free)
 
 **UptimeRobot** — ping every 5 min:
 ```
 https://mandi-prices-api.onrender.com/health
 ```
 
-**cron-job.org** — sync every hour:
+**cron-job.org** — hourly sync:
 ```
 POST https://mandi-prices-api.onrender.com/api/v1/sync/run
-Header: X-Sync-Key: (from Render → Environment → SYNC_API_KEY)
+Header: X-Sync-Key: (from Render Environment)
 ```

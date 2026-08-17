@@ -1,8 +1,5 @@
-# Render — ONE service (website + API together)
+# Render — API only (Docker). Website on Vercel.
 # Deploy: https://render.com/deploy?repo=https://github.com/tusharphalke19995/Today-s-Mandi-Prices
-#
-# LIVE URL: https://mandi-prices-api.onrender.com
-# (Do NOT use mandi-prices-web — delete that old service)
 
 services:
   - type: web
