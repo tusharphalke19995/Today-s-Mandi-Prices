@@ -1,6 +1,6 @@
 """Seed sample mandi price data for development and demo."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -91,10 +91,20 @@ SAMPLE_DATA = MUMBAI_PUNE_REGION + [
 ]
 
 
-def seed_sample_data(db: Session) -> int:
+def _price_for_day(base_modal: float, base_min: float, base_max: float, day_offset: int, commodity: str) -> tuple[float, float, float]:
+    """Deterministic daily variation for demo history charts."""
+    seed = sum(ord(c) for c in commodity) + day_offset
+    wave = ((seed * 17) % 13 - 6) / 100  # roughly -6% to +6%
+    trend = day_offset * 0.0015
+    factor = 1 + wave - trend
+    modal = round(base_modal * factor)
+    spread = round((base_max - base_min) * 0.5)
+    return modal - spread, modal + spread, modal
+
+
+def seed_sample_data(db: Session, history_days: int = 30) -> int:
     repo = MarketRepository(db)
     now = datetime.utcnow()
-    arrival_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
     seeded = 0
 
     for item in SAMPLE_DATA:
@@ -105,17 +115,29 @@ def seed_sample_data(db: Session) -> int:
             item["commodity"],
         )
         commodity.icon = get_commodity_icon(item["commodity"])
-        repo.upsert_market_price(
-            market=market,
-            commodity=commodity,
-            min_price=item["min_price"],
-            max_price=item["max_price"],
-            modal_price=item["modal_price"],
-            arrival_quantity=item["arrival_quantity"],
-            arrival_unit="Quintal",
-            arrival_date=arrival_date,
-        )
-        seeded += 1
+
+        for day_offset in range(history_days):
+            arrival_date = (now - timedelta(days=day_offset)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            min_p, max_p, modal_p = _price_for_day(
+                item["modal_price"],
+                item["min_price"],
+                item["max_price"],
+                day_offset,
+                item["commodity"],
+            )
+            repo.upsert_market_price(
+                market=market,
+                commodity=commodity,
+                min_price=min_p,
+                max_price=max_p,
+                modal_price=modal_p,
+                arrival_quantity=item["arrival_quantity"],
+                arrival_unit="Quintal",
+                arrival_date=arrival_date,
+            )
+            seeded += 1
 
     db.commit()
     return seeded

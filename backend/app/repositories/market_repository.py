@@ -1,10 +1,10 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import Commodity, District, Market, MarketPrice, State
-from app.schemas.market import TodayPriceResponse, TodayPricesQuery
+from app.schemas.market import PriceHistoryPoint, PriceHistoryResponse, TodayPriceResponse, TodayPricesQuery
 from app.utils.helpers import get_commodity_icon
 
 
@@ -98,6 +98,62 @@ class MarketRepository:
         if not row:
             return None
         return self._to_price_response(row)
+
+    def get_price_history(self, price_id: int, days: int) -> PriceHistoryResponse | None:
+        row = self._base_price_query().filter(MarketPrice.id == price_id).first()
+        if not row:
+            return None
+
+        cutoff = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=days - 1)
+        history_rows = (
+            self.db.query(MarketPrice)
+            .filter(
+                MarketPrice.market_id == row.market_id,
+                MarketPrice.commodity_id == row.commodity_id,
+                MarketPrice.arrival_date >= cutoff,
+            )
+            .order_by(MarketPrice.arrival_date.asc())
+            .all()
+        )
+
+        by_date: dict[date, MarketPrice] = {}
+        for hr in history_rows:
+            if not hr.arrival_date:
+                continue
+            day = hr.arrival_date.date()
+            existing = by_date.get(day)
+            if not existing or hr.last_updated > existing.last_updated:
+                by_date[day] = hr
+
+        points = [
+            PriceHistoryPoint(
+                date=day,
+                modal_price=by_date[day].modal_price,
+                min_price=by_date[day].min_price,
+                max_price=by_date[day].max_price,
+            )
+            for day in sorted(by_date.keys())
+        ]
+
+        avg_modal = None
+        change_percent = None
+        modal_values = [p.modal_price for p in points if p.modal_price is not None]
+        if modal_values:
+            avg_modal = round(sum(modal_values) / len(modal_values), 2)
+        if len(modal_values) >= 2:
+            first, last = modal_values[0], modal_values[-1]
+            if first:
+                change_percent = round(((last - first) / first) * 100, 2)
+
+        return PriceHistoryResponse(
+            market=row.market.name,
+            commodity=row.commodity.name,
+            price_unit=row.price_unit or "Quintal",
+            days=days,
+            points=points,
+            average_modal_price=avg_modal,
+            change_percent=change_percent,
+        )
 
     @staticmethod
     def _to_price_response(row: MarketPrice) -> TodayPriceResponse:

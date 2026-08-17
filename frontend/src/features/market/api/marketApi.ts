@@ -6,6 +6,7 @@ import {
   getFallbackDistricts,
   getFallbackMarkets,
   getFallbackPriceById,
+  getFallbackPriceHistory,
   getFallbackStates,
   getFallbackSyncStatus,
 } from '../data/fallbackData';
@@ -16,6 +17,7 @@ import type {
   Market,
   PaginatedPrices,
   PriceFilters,
+  PriceHistory,
   State,
   TodayPrice,
 } from '../models/types';
@@ -75,6 +77,13 @@ export const marketApi = {
         if (!price) throw new Error('NOT_FOUND');
         return price;
       },
+    ),
+
+  getPriceHistory: async (id: number, days: 7 | 30): Promise<PriceHistory> =>
+    tryLive(
+      async () =>
+        (await apiClient.get<PriceHistory>(`/today-prices/${id}/history`, { params: { days } })).data,
+      () => getFallbackPriceHistory(id, days),
     ),
 
   getSyncStatus: async (): Promise<SyncStatus> =>

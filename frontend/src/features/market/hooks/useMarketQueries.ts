@@ -15,6 +15,7 @@ export const marketKeys = {
   commodities: () => [...marketKeys.all, 'commodities'] as const,
   todayPrices: (filters: PriceFilters) => [...marketKeys.all, 'today-prices', filters] as const,
   priceDetail: (id: number) => [...marketKeys.all, 'price', id] as const,
+  priceHistory: (id: number, days: number) => [...marketKeys.all, 'history', id, days] as const,
   syncStatus: () => [...marketKeys.all, 'sync-status'] as const,
 };
 
@@ -75,6 +76,16 @@ export function usePriceDetail(id: number) {
     queryFn: () => marketApi.getPriceById(id),
     enabled: id > 0,
     ...hourlyQuery,
+  });
+}
+
+export function usePriceHistory(id: number, days: 7 | 30) {
+  return useQuery({
+    queryKey: marketKeys.priceHistory(id, days),
+    queryFn: () => marketApi.getPriceHistory(id, days),
+    enabled: id > 0,
+    staleTime: PRICE_REFRESH_INTERVAL_MS,
+    retry: 1,
   });
 }
 

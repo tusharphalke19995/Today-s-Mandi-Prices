@@ -47,6 +47,10 @@ export interface Translations {
   thirtyDayTrend: string;
   chartPreview: string;
   chartComing: string;
+  avgRate: string;
+  noHistoryData: string;
+  chartDailyModal: string;
+  days: string;
   commodityNotFound: string;
   footer: string;
   price: string;

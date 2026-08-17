@@ -72,3 +72,20 @@ class PaginatedResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class PriceHistoryPoint(BaseModel):
+    date: date
+    modal_price: float | None = None
+    min_price: float | None = None
+    max_price: float | None = None
+
+
+class PriceHistoryResponse(BaseModel):
+    market: str
+    commodity: str
+    price_unit: str = "Quintal"
+    days: int
+    points: list[PriceHistoryPoint]
+    average_modal_price: float | None = None
+    change_percent: float | None = None

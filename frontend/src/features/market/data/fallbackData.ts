@@ -1,4 +1,4 @@
-import type { Commodity, District, Market, PaginatedPrices, PriceFilters, State, TodayPrice } from '../models/types';
+import type { Commodity, District, Market, PaginatedPrices, PriceFilters, PriceHistory, PriceHistoryPoint, State, TodayPrice } from '../models/types';
 
 const ICONS: Record<string, string> = {
   Onion: '🧅',
@@ -130,6 +130,56 @@ export function getFallbackCommodities(): Commodity[] {
 
 export function getFallbackPriceById(id: number): TodayPrice | undefined {
   return FALLBACK_PRICES.find((r) => r.id === id);
+}
+
+function generateFallbackHistory(price: TodayPrice, days: 7 | 30): PriceHistory {
+  const base = price.modal_price ?? 2000;
+  const minBase = price.min_price ?? base * 0.92;
+  const maxBase = price.max_price ?? base * 1.08;
+  const points: PriceHistoryPoint[] = [];
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const seed = (price.id ?? 1) + i;
+    const wave = ((seed * 17) % 13 - 6) / 100;
+    const trend = i * 0.0015;
+    const factor = 1 + wave - trend;
+    const modal = Math.round(base * factor);
+    const spread = Math.round((maxBase - minBase) * 0.5);
+    points.push({
+      date: dateStr,
+      modal_price: modal,
+      min_price: modal - spread,
+      max_price: modal + spread,
+    });
+  }
+
+  const modalValues = points.map((p) => p.modal_price!).filter(Boolean);
+  const avg = modalValues.length
+    ? Math.round(modalValues.reduce((a, b) => a + b, 0) / modalValues.length)
+    : undefined;
+  const change =
+    modalValues.length >= 2 && modalValues[0]
+      ? Math.round(((modalValues[modalValues.length - 1] - modalValues[0]) / modalValues[0]) * 1000) / 10
+      : undefined;
+
+  return {
+    market: price.market,
+    commodity: price.commodity,
+    price_unit: price.price_unit,
+    days,
+    points,
+    average_modal_price: avg,
+    change_percent: change,
+  };
+}
+
+export function getFallbackPriceHistory(id: number, days: 7 | 30): PriceHistory {
+  const price = getFallbackPriceById(id);
+  if (!price) throw new Error('NOT_FOUND');
+  return generateFallbackHistory(price, days);
 }
 
 export function getFallbackSyncStatus() {

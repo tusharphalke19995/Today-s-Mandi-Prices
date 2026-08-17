@@ -7,24 +7,14 @@ import {
   Button,
   Chip,
   alpha,
-  Divider,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import ShowChartIcon from '@mui/icons-material/ShowChart';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
-import { usePriceDetail } from '@/features/market/hooks/useMarketQueries';
+import { usePriceDetail, usePriceHistory } from '@/features/market/hooks/useMarketQueries';
 import { PriceGridSkeleton } from '@/shared/components/PriceCardSkeleton';
 import { EmptyState } from '@/shared/components/EmptyState';
+import { PriceTrendChart } from '@/shared/components/PriceTrendChart';
 import { useTranslation } from '@/i18n';
 import { formatCurrency, formatDate, formatUpdatedTime } from '@/utils/formatters';
 
@@ -41,22 +31,14 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-const PLACEHOLDER_CHART_DATA = [
-  { day: 'Mon', price: 2700 },
-  { day: 'Tue', price: 2750 },
-  { day: 'Wed', price: 2800 },
-  { day: 'Thu', price: 2780 },
-  { day: 'Fri', price: 2850 },
-  { day: 'Sat', price: 2820 },
-  { day: 'Sun', price: 2850 },
-];
-
 export function CommodityDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t, language } = useTranslation();
   const priceId = Number(id);
   const { data: price, isLoading, isError, refetch } = usePriceDetail(priceId);
+  const { data: history7, isLoading: loading7 } = usePriceHistory(priceId, 7);
+  const { data: history30, isLoading: loading30 } = usePriceHistory(priceId, 30);
   const na = t('notAvailable');
 
   if (isLoading) {
@@ -174,70 +156,20 @@ export function CommodityDetailsPage() {
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
-          <Paper
-            elevation={0}
-            sx={{ p: 3, borderRadius: 4, border: 1, borderColor: 'divider', height: 320 }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <ShowChartIcon color="primary" />
-              <Typography variant="h6" fontWeight={700}>
-                {t('sevenDayTrend')}
-              </Typography>
-              <Chip label={t('comingSoon')} size="small" color="secondary" sx={{ ml: 'auto' }} />
-            </Box>
-            <Divider sx={{ mb: 2 }} />
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={PLACEHOLDER_CHART_DATA}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                <XAxis dataKey="day" />
-                <YAxis tickFormatter={(v) => `₹${v}`} />
-                <Tooltip formatter={(v: number) => [`₹${v}`, t('price')]} />
-                <Line
-                  type="monotone"
-                  dataKey="price"
-                  stroke="#2e7d32"
-                  strokeWidth={3}
-                  dot={{ fill: '#2e7d32' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-              {t('chartPreview')}
-            </Typography>
-          </Paper>
+          <PriceTrendChart
+            title={t('sevenDayTrend')}
+            days={7}
+            history={history7}
+            isLoading={loading7}
+          />
         </Grid>
-
         <Grid item xs={12} md={6}>
-          <Paper
-            elevation={0}
-            sx={{ p: 3, borderRadius: 4, border: 1, borderColor: 'divider', height: 320 }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <ShowChartIcon color="primary" />
-              <Typography variant="h6" fontWeight={700}>
-                {t('thirtyDayTrend')}
-              </Typography>
-              <Chip label={t('comingSoon')} size="small" color="secondary" sx={{ ml: 'auto' }} />
-            </Box>
-            <Divider sx={{ mb: 2 }} />
-            <Box
-              sx={{
-                height: 220,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
-                borderRadius: 2,
-                border: '2px dashed',
-                borderColor: 'divider',
-                px: 2,
-              }}
-            >
-              <Typography variant="body2" color="text.secondary" textAlign="center" lineHeight={1.7}>
-                {t('chartComing')}
-              </Typography>
-            </Box>
-          </Paper>
+          <PriceTrendChart
+            title={t('thirtyDayTrend')}
+            days={30}
+            history={history30}
+            isLoading={loading30}
+          />
         </Grid>
       </Grid>
     </Container>

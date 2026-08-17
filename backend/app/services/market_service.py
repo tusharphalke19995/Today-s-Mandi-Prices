@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.repositories.cache_repository import CacheRepository
 from app.repositories.market_repository import MarketRepository
-from app.schemas.market import TodayPriceResponse, TodayPricesQuery
+from app.schemas.market import PriceHistoryResponse, TodayPriceResponse, TodayPricesQuery
 from app.utils.helpers import safe_float
 
 logger = logging.getLogger(__name__)
@@ -357,3 +357,14 @@ class MarketService:
 
     def get_price_by_id(self, price_id: int) -> TodayPriceResponse | None:
         return self.repo.get_price_by_id(price_id)
+
+    def get_price_history(self, price_id: int, days: int) -> PriceHistoryResponse | None:
+        cache_key = CacheRepository.build_key("price_history", price_id=price_id, days=days)
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            return PriceHistoryResponse(**cached)
+
+        history = self.repo.get_price_history(price_id, days)
+        if history:
+            self.cache.set(cache_key, history.model_dump(mode="json"))
+        return history

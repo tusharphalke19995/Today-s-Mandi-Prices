@@ -57,6 +57,23 @@ export interface PriceFilters {
   page_size?: number;
 }
 
+export interface PriceHistoryPoint {
+  date: string;
+  modal_price?: number;
+  min_price?: number;
+  max_price?: number;
+}
+
+export interface PriceHistory {
+  market: string;
+  commodity: string;
+  price_unit: string;
+  days: number;
+  points: PriceHistoryPoint[];
+  average_modal_price?: number;
+  change_percent?: number;
+}
+
 export interface FilterState {
   state: string;
   district: string;

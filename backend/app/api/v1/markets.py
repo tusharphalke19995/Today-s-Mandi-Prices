@@ -9,6 +9,7 @@ from app.schemas.market import (
     DistrictResponse,
     MarketResponse,
     PaginatedResponse,
+    PriceHistoryResponse,
     StateResponse,
     TodayPriceResponse,
     TodayPricesQuery,
@@ -91,3 +92,18 @@ async def get_price_detail(
     if not price:
         raise HTTPException(status_code=404, detail="Price record not found")
     return price
+
+
+@router.get("/today-prices/{price_id}/history", response_model=PriceHistoryResponse)
+async def get_price_history(
+    price_id: int,
+    days: int = Query(7, ge=7, le=30, description="Number of days (7 or 30)"),
+    service: MarketService = Depends(get_market_service),
+):
+    if days not in (7, 30):
+        days = 30 if days > 18 else 7
+
+    history = service.get_price_history(price_id, days)
+    if not history:
+        raise HTTPException(status_code=404, detail="Price record not found")
+    return history
