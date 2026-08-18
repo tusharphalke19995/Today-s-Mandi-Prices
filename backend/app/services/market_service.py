@@ -34,9 +34,22 @@ PRIORITY_STATES = [
 class AgmarknetService:
     """Fetches and normalizes data from data.gov.in Agmarknet API."""
 
+    # New variety-wise dataset first, then classic AGMARKNET resource
+    RESOURCE_IDS = (
+        "35985678-0d79-46b4-9ed6-6f13308a1d24",
+        "9ef84268-d588-465a-a308-a864a43d0070",
+    )
+
     def __init__(self):
-        self.api_url = settings.data_gov_api_url
         self.api_key = settings.data_gov_api_key
+
+    def _resource_url(self, resource_id: str) -> str:
+        return f"{settings.data_gov_base_url}/{resource_id}"
+
+    def _date_filter_key(self, resource_id: str) -> str:
+        if resource_id.startswith("35985678"):
+            return "filters[Arrival_Date]"
+        return "filters[arrival_date]"
 
     async def fetch_prices(
         self,
@@ -44,8 +57,38 @@ class AgmarknetService:
         district: str | None = None,
         market: str | None = None,
         commodity: str | None = None,
+        arrival_date: str | None = None,
         limit: int = 100,
         offset: int = 0,
+        resource_id: str | None = None,
+    ) -> list[dict]:
+        resources = [resource_id] if resource_id else list(self.RESOURCE_IDS)
+
+        for rid in resources:
+            records = await self._fetch_from_resource(
+                rid,
+                state=state,
+                district=district,
+                market=market,
+                commodity=commodity,
+                arrival_date=arrival_date,
+                limit=limit,
+                offset=offset,
+            )
+            if records:
+                return records
+        return []
+
+    async def _fetch_from_resource(
+        self,
+        resource_id: str,
+        state: str | None,
+        district: str | None,
+        market: str | None,
+        commodity: str | None,
+        arrival_date: str | None,
+        limit: int,
+        offset: int,
     ) -> list[dict]:
         params: dict[str, str | int] = {
             "api-key": self.api_key,
@@ -54,36 +97,50 @@ class AgmarknetService:
             "offset": offset,
         }
 
-        filters: dict[str, str] = {}
+        is_v2 = resource_id.startswith("35985678")
+        filters: list[tuple[str, str]] = []
         if state:
-            filters["state"] = state
+            filters.append(("State" if is_v2 else "state", state))
         if district:
-            filters["district"] = district
+            filters.append(("District" if is_v2 else "district", district))
         if market:
-            filters["market"] = market
+            filters.append(("Market" if is_v2 else "market", market))
         if commodity:
-            filters["commodity"] = commodity
+            filters.append(("Commodity" if is_v2 else "commodity", commodity))
+        if arrival_date:
+            filters.append(("Arrival_Date" if is_v2 else "arrival_date", arrival_date))
 
-        for key, value in filters.items():
+        for key, value in filters:
             params[f"filters[{key}]"] = value
 
+        url = self._resource_url(resource_id)
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(self.api_url, params=params)
+            async with httpx.AsyncClient(timeout=45.0) as client:
+                response = await client.get(url, params=params)
+                if response.status_code == 403:
+                    logger.warning("Agmarknet API key not authorised for resource %s", resource_id)
+                    return []
                 response.raise_for_status()
                 payload = response.json()
+                if payload.get("error"):
+                    logger.warning("Agmarknet error (%s): %s", resource_id, payload.get("error"))
+                    return []
                 records = payload.get("records", [])
                 if records:
+                    logger.info("Agmarknet live: %s records from %s", len(records), resource_id[:8])
                     return records
-                logger.warning("Agmarknet API returned empty records")
                 return []
         except httpx.HTTPError as exc:
-            logger.error("Failed to fetch from Agmarknet API: %s", exc)
+            logger.error("Agmarknet fetch failed (%s): %s", resource_id[:8], exc)
             return []
 
     @staticmethod
     def normalize_record(record: dict) -> dict:
-        arrival_date_str = record.get("arrival_date") or record.get("Arrival_Date")
+        arrival_date_str = (
+            record.get("arrival_date")
+            or record.get("Arrival_Date")
+            or record.get("Arrival_date")
+        )
         arrival_date = None
         if arrival_date_str:
             for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y"):
@@ -93,6 +150,14 @@ class AgmarknetService:
                 except ValueError:
                     continue
 
+        modal = safe_float(
+            record.get("modal_price")
+            or record.get("Modal_Price")
+            or record.get("avg_price")
+            or record.get("Avg_Price")
+            or record.get("Average_Price")
+        )
+
         return {
             "state": (record.get("state") or record.get("State") or "").strip(),
             "district": (record.get("district") or record.get("District") or "").strip(),
@@ -100,7 +165,7 @@ class AgmarknetService:
             "commodity": (record.get("commodity") or record.get("Commodity") or "").strip(),
             "min_price": safe_float(record.get("min_price") or record.get("Min_Price")),
             "max_price": safe_float(record.get("max_price") or record.get("Max_Price")),
-            "modal_price": safe_float(record.get("modal_price") or record.get("Modal_Price")),
+            "modal_price": modal,
             "arrival_quantity": safe_float(
                 record.get("arrival_quantity") or record.get("Arrivals") or record.get("arrivals")
             ),
@@ -201,12 +266,14 @@ class MarketService:
 
     async def _sync_priority_areas(self) -> int:
         """Sync Mumbai, Pune, Manchar, Junnar mandi data from Agmarknet."""
+        today = datetime.utcnow().strftime("%Y-%m-%d")
         total = 0
         for area in PRIORITY_AREAS:
             for offset in range(0, 200, 100):
                 records = await self.agmarknet.fetch_prices(
                     state="Maharashtra",
                     market=area,
+                    arrival_date=today,
                     limit=100,
                     offset=offset,
                 )
@@ -214,6 +281,7 @@ class MarketService:
                     records = await self.agmarknet.fetch_prices(
                         state="Maharashtra",
                         district=area,
+                        arrival_date=today,
                         limit=100,
                         offset=offset,
                     )
@@ -317,7 +385,72 @@ class MarketService:
             self.cache.set(cache_key, result)
         return result
 
-    async def get_today_prices(self, query_params: TodayPricesQuery) -> tuple[list[TodayPriceResponse], int]:
+    async def sync_live_for_query(self, query_params: TodayPricesQuery) -> int:
+        """Pull today's prices from Agmarknet for the active filters."""
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+        total = 0
+
+        async def pull(**kwargs) -> int:
+            synced = 0
+            for offset in range(0, 500, 100):
+                records = await self.agmarknet.fetch_prices(
+                    limit=100,
+                    offset=offset,
+                    arrival_date=today,
+                    **kwargs,
+                )
+                if not records:
+                    break
+                synced += await self._sync_records_batch(records)
+                if len(records) < 100:
+                    break
+            return synced
+
+        if query_params.areas:
+            for area in [a.strip() for a in query_params.areas.split(",") if a.strip()]:
+                total += await pull(state=query_params.state or "Maharashtra", market=area)
+                if total == 0:
+                    total += await pull(state=query_params.state or "Maharashtra", district=area)
+        elif query_params.market:
+            total += await pull(
+                state=query_params.state,
+                district=query_params.district,
+                market=query_params.market,
+                commodity=query_params.commodity,
+            )
+        elif query_params.commodity or query_params.state:
+            total += await pull(
+                state=query_params.state or "Maharashtra",
+                commodity=query_params.commodity,
+            )
+        else:
+            total += await pull(state="Maharashtra")
+            for offset in range(0, 300, 100):
+                records = await self.agmarknet.fetch_prices(
+                    limit=100, offset=offset, arrival_date=today
+                )
+                if not records:
+                    break
+                total += await self._sync_records_batch(records)
+                if len(records) < 100:
+                    break
+
+        if total:
+            self.cache.purge_all()
+            logger.info("Live sync for query: %s records", total)
+        return total
+
+    async def get_today_prices(
+        self, query_params: TodayPricesQuery
+    ) -> tuple[list[TodayPriceResponse], int, str | None, int | None]:
+        data_source: str | None = None
+        live_synced: int | None = None
+
+        if query_params.fresh:
+            live_synced = await self.sync_live_for_query(query_params)
+            if live_synced:
+                data_source = "agmarknet"
+
         cache_key = CacheRepository.build_key(
             "today_prices",
             state=query_params.state,
@@ -328,11 +461,14 @@ class MarketService:
             areas=query_params.areas,
             page=query_params.page,
             page_size=query_params.page_size,
+            fresh=query_params.fresh,
         )
-        cached = self.cache.get(cache_key)
-        if cached is not None:
-            items = [TodayPriceResponse(**item) for item in cached["items"]]
-            return items, cached["total"]
+
+        if not query_params.fresh:
+            cached = self.cache.get(cache_key)
+            if cached is not None:
+                items = [TodayPriceResponse(**item) for item in cached["items"]]
+                return items, cached["total"], cached.get("data_source"), cached.get("live_synced")
 
         items, total = self.repo.get_today_prices(query_params)
 
@@ -341,19 +477,27 @@ class MarketService:
             await self._sync_priority_areas()
             items, total = self.repo.get_today_prices(query_params)
 
-        # Only hit external API when the database has no price data at all.
-        # Filtered empty results are valid and should return immediately.
         if not items and not self._has_any_prices():
             logger.info("Database empty — syncing from government API")
-            await self.sync_from_government_api(
+            synced = await self.sync_from_government_api(
                 state=query_params.state,
                 commodity=query_params.commodity,
             )
+            if synced:
+                data_source = "agmarknet"
+                live_synced = synced
             items, total = self.repo.get_today_prices(query_params)
 
-        # Cache all responses including empty results to avoid repeated slow lookups
-        self.cache.set(cache_key, self._serialize_prices(items, total))
-        return items, total
+        if not data_source and items:
+            data_source = "database"
+
+        payload = {
+            **self._serialize_prices(items, total),
+            "data_source": data_source,
+            "live_synced": live_synced,
+        }
+        self.cache.set(cache_key, payload)
+        return items, total, data_source, live_synced
 
     def get_price_by_id(self, price_id: int) -> TodayPriceResponse | None:
         return self.repo.get_price_by_id(price_id)

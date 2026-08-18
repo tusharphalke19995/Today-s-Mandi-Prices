@@ -26,8 +26,8 @@ export function getApiBaseUrl(): string {
   return '/api/v1';
 }
 
-const WAKE_ATTEMPTS = 2;
-const WAKE_TIMEOUT_MS = 25_000;
+const WAKE_ATTEMPTS = 4;
+const WAKE_TIMEOUT_MS = 45_000;
 
 let apiWakePromise: Promise<boolean> | null = null;
 

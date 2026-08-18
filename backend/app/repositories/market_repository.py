@@ -51,9 +51,19 @@ class MarketRepository:
             )
         )
 
-    def get_today_prices(self, query_params: TodayPricesQuery) -> tuple[list[TodayPriceResponse], int]:
-        query = self._base_price_query()
+    def _latest_prices_subquery(self):
+        """One row per market+commodity — latest arrival_date."""
+        return (
+            self.db.query(
+                MarketPrice.market_id.label("market_id"),
+                MarketPrice.commodity_id.label("commodity_id"),
+                func.max(MarketPrice.arrival_date).label("latest_date"),
+            )
+            .group_by(MarketPrice.market_id, MarketPrice.commodity_id)
+            .subquery()
+        )
 
+    def _apply_price_filters(self, query, query_params: TodayPricesQuery):
         if query_params.state:
             query = query.filter(func.lower(State.name) == query_params.state.lower())
         if query_params.district:
@@ -80,6 +90,17 @@ class MarketRepository:
                     func.lower(District.name).like(search),
                 )
             )
+        return query
+
+    def get_today_prices(self, query_params: TodayPricesQuery) -> tuple[list[TodayPriceResponse], int]:
+        latest = self._latest_prices_subquery()
+        query = self._base_price_query().join(
+            latest,
+            (MarketPrice.market_id == latest.c.market_id)
+            & (MarketPrice.commodity_id == latest.c.commodity_id)
+            & (MarketPrice.arrival_date == latest.c.latest_date),
+        )
+        query = self._apply_price_filters(query, query_params)
 
         total = query.count()
         offset = (query_params.page - 1) * query_params.page_size

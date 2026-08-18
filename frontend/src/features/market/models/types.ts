@@ -44,6 +44,8 @@ export interface PaginatedPrices {
   page: number;
   page_size: number;
   total_pages: number;
+  data_source?: 'agmarknet' | 'database' | string;
+  live_synced?: number;
 }
 
 export interface PriceFilters {
@@ -55,6 +57,7 @@ export interface PriceFilters {
   areas?: string;
   page?: number;
   page_size?: number;
+  fresh?: boolean;
 }
 
 export interface PriceHistoryPoint {

@@ -10,6 +10,8 @@ import {
   Paper,
   Stack,
   Alert,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -66,6 +68,14 @@ export function DashboardPage() {
   const isOffline = error instanceof Error && error.message === 'NETWORK_ERROR' && apiMode !== 'fallback';
   const singleResult = data?.total === 1;
   const resultLabel = data?.total === 1 ? t('result') : t('results');
+  const isLiveAgmarknet = apiMode === 'live' && data?.data_source === 'agmarknet';
+  const statusLabel =
+    apiMode === 'fallback'
+      ? t('liveUpdates')
+      : isLiveAgmarknet
+        ? t('liveFromAgmarknet')
+        : t('liveFromDatabase');
+  const statusColor = apiMode === 'fallback' ? 'warning' : isLiveAgmarknet ? 'success' : 'info';
 
   const handleRetry = () => {
     resetApiWake();
@@ -231,15 +241,36 @@ export function DashboardPage() {
                 <FiberManualRecordIcon
                   sx={{
                     fontSize: '10px !important',
-                    color: syncStatus?.sync_running ? 'warning.main' : 'success.main',
+                    color:
+                      syncStatus?.sync_running || isFetching
+                        ? 'warning.main'
+                        : apiMode === 'fallback'
+                          ? 'warning.main'
+                          : 'success.main',
                   }}
                 />
               }
-              label={syncStatus?.sync_running ? t('syncingNow') : t('liveUpdates')}
+              label={syncStatus?.sync_running ? t('syncingNow') : statusLabel}
               variant="outlined"
-              color={syncStatus?.sync_running ? 'warning' : 'success'}
+              color={syncStatus?.sync_running ? 'warning' : statusColor}
               sx={{ fontWeight: 600, maxWidth: '100%' }}
             />
+            <Tooltip title={t('refreshLiveData')}>
+              <IconButton
+                size="small"
+                color="primary"
+                onClick={handleRetry}
+                disabled={isFetching}
+                aria-label={t('refreshLiveData')}
+              >
+                <SyncIcon
+                  sx={{
+                    animation: isFetching ? 'spin 1s linear infinite' : undefined,
+                    '@keyframes spin': { to: { transform: 'rotate(360deg)' } },
+                  }}
+                />
+              </IconButton>
+            </Tooltip>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
             {syncStatus?.last_sync_at && (
@@ -274,6 +305,15 @@ export function DashboardPage() {
         {apiMode === 'fallback' && (
           <Alert severity="warning" sx={{ mb: 2, borderRadius: 2, fontWeight: 600 }}>
             {t('fallbackBanner')}
+            <Typography variant="caption" display="block" sx={{ mt: 0.5, fontWeight: 500 }}>
+              {t('liveDataHint')}
+            </Typography>
+          </Alert>
+        )}
+
+        {apiMode === 'live' && data?.live_synced != null && data.live_synced > 0 && (
+          <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>
+            {t('liveFromAgmarknet')} — {data.live_synced} {t('liveRecordsUpdated')}
           </Alert>
         )}
 

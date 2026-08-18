@@ -68,6 +68,11 @@ export interface Translations {
   serverWakingTip: string;
   serverTimeoutTitle: string;
   serverTimeoutMessage: string;
+  liveFromAgmarknet: string;
+  liveFromDatabase: string;
+  refreshLiveData: string;
+  liveDataHint: string;
+  liveRecordsUpdated: string;
   fallbackBanner: string;
 }
 

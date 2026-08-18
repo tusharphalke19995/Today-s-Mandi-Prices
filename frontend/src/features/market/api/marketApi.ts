@@ -23,16 +23,32 @@ import type {
 } from '../models/types';
 
 async function tryLive<T>(call: () => Promise<T>, fallback: () => T): Promise<T> {
-  const awake = await ensureApiAwake();
-  if (!awake) {
-    useApiModeStore.getState().setMode('fallback');
-    return fallback();
+  if (!import.meta.env.PROD) {
+    try {
+      const result = await call();
+      useApiModeStore.getState().setMode('live');
+      return result;
+    } catch {
+      useApiModeStore.getState().setMode('fallback');
+      return fallback();
+    }
   }
+
   try {
     const result = await call();
     useApiModeStore.getState().setMode('live');
     return result;
   } catch {
+    const awake = await ensureApiAwake();
+    if (awake) {
+      try {
+        const result = await call();
+        useApiModeStore.getState().setMode('live');
+        return result;
+      } catch {
+        // fall through
+      }
+    }
     useApiModeStore.getState().setMode('fallback');
     return fallback();
   }
@@ -64,6 +80,17 @@ export const marketApi = {
     ),
 
   getTodayPrices: async (filters: PriceFilters = {}): Promise<PaginatedPrices> =>
+    tryLive(
+      async () =>
+        (
+          await apiClient.get<PaginatedPrices>('/live-prices', {
+            params: { ...filters, fresh: undefined },
+          })
+        ).data,
+      () => filterFallbackPrices(filters),
+    ),
+
+  getTodayPricesCached: async (filters: PriceFilters = {}): Promise<PaginatedPrices> =>
     tryLive(
       async () => (await apiClient.get<PaginatedPrices>('/today-prices', { params: filters })).data,
       () => filterFallbackPrices(filters),

@@ -25,7 +25,8 @@ services:
       - key: CACHE_TTL_SECONDS
         value: "3600"
       - key: DATA_GOV_API_KEY
-        value: 579b464db66ec23bdd000001cdd3946e44ce57746370fffc958d3611
+        sync: false
+        # Register free key at https://data.gov.in → My Account → Generate API Key
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: SYNC_API_KEY

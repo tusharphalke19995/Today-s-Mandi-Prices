@@ -60,6 +60,7 @@ async def get_today_prices(
     areas: str | None = Query(None, description="Comma-separated areas e.g. Mumbai,Pune,Manchar,Junnar"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    fresh: bool = Query(False, description="Pull latest from Agmarknet before responding"),
     service: MarketService = Depends(get_market_service),
 ):
     query = TodayPricesQuery(
@@ -71,8 +72,9 @@ async def get_today_prices(
         areas=areas,
         page=page,
         page_size=page_size,
+        fresh=fresh,
     )
-    items, total = await service.get_today_prices(query)
+    items, total, data_source, live_synced = await service.get_today_prices(query)
     total_pages = math.ceil(total / page_size) if total else 0
     return PaginatedResponse(
         items=items,
@@ -80,6 +82,45 @@ async def get_today_prices(
         page=page,
         page_size=page_size,
         total_pages=total_pages,
+        data_source=data_source,
+        live_synced=live_synced,
+    )
+
+
+@router.get("/live-prices", response_model=PaginatedResponse)
+async def get_live_prices(
+    state: str | None = Query(None),
+    district: str | None = Query(None),
+    market: str | None = Query(None),
+    commodity: str | None = Query(None),
+    search: str | None = Query(None),
+    areas: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    service: MarketService = Depends(get_market_service),
+):
+    """Fetch today's mandi prices live from Agmarknet (data.gov.in)."""
+    query = TodayPricesQuery(
+        state=state,
+        district=district,
+        market=market,
+        commodity=commodity,
+        search=search,
+        areas=areas,
+        page=page,
+        page_size=page_size,
+        fresh=True,
+    )
+    items, total, data_source, live_synced = await service.get_today_prices(query)
+    total_pages = math.ceil(total / page_size) if total else 0
+    return PaginatedResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        data_source=data_source or "agmarknet",
+        live_synced=live_synced,
     )
 
 

@@ -60,6 +60,7 @@ class TodayPricesQuery(BaseModel):
     areas: str | None = None  # comma-separated: Mumbai,Pune,Manchar,Junnar
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
+    fresh: bool = False  # pull latest from Agmarknet before responding
 
 
 class PaginatedResponse(BaseModel):
@@ -68,6 +69,8 @@ class PaginatedResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+    data_source: str | None = None  # agmarknet | database
+    live_synced: int | None = None
 
 
 class MessageResponse(BaseModel):

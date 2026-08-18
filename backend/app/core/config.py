@@ -42,6 +42,7 @@ class Settings(BaseSettings):
 
     data_gov_api_key: str = "579b464db66ec23bdd000001cdd3946e44ce57746370fffc958d3611"
     data_gov_resource_id: str = "9ef84268-d588-465a-a308-a864a43d0070"
+    data_gov_resource_id_v2: str = "35985678-0d79-46b4-9ed6-6f13308a1d24"
     data_gov_base_url: str = "https://api.data.gov.in/resource"
 
     cache_ttl_seconds: int = 3600

@@ -15,7 +15,7 @@ class CacheRepository:
         self.db = db
 
     @staticmethod
-    def build_key(prefix: str, **params: str | int | None) -> str:
+    def build_key(prefix: str, **params: str | int | bool | None) -> str:
         filtered = {k: v for k, v in sorted(params.items()) if v is not None}
         payload = json.dumps(filtered, sort_keys=True)
         digest = hashlib.sha256(payload.encode()).hexdigest()[:16]
